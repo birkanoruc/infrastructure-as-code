@@ -1,0 +1,16 @@
+services:
+  caddy:
+    image: caddy:latest
+    container_name: kovan-proxy
+    ports:
+      - "80:80"
+      - "2019:2019"
+    volumes:
+      - ${PWD}/Caddyfile:/etc/caddy/Caddyfile
+    restart: unless-stopped
+
+  app:
+    image: nginx:latest
+    container_name: kovan-app
+    ports:
+      - "8081:80"

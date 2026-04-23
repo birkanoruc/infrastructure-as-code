@@ -78,16 +78,14 @@ export default function FirewallPage() {
   if (loading) return <div className="p-10 text-center">Yükleniyor...</div>;
 
   return (
-    <div className="min-h-screen bg-background transition-colors duration-300 p-8">
-      <div className="max-w-2xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold text-foreground">Firewall Ayarları</h1>
-          <button onClick={() => router.push("/")} className="text-sm text-muted-text hover:text-foreground transition-colors">
-            Kapat
-          </button>
-        </div>
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Firewall Ayarları</h1>
+        <p className="text-muted-text mt-1 text-sm font-medium">Bu uygulama için IP tabanlı erişim kısıtlamalarını yönetin.</p>
+      </div>
 
-        <div className="bg-card rounded-2xl shadow-sm border border-card-border p-8">
+      <div className="max-w-2xl">
+        {/* IP Beyaz Listesi Section */}
           <div className="mb-8">
             <h2 className="text-lg font-bold text-foreground mb-2">IP Beyaz Listesi (Whitelist)</h2>
             <p className="text-sm text-muted-text leading-relaxed">
@@ -141,7 +139,6 @@ export default function FirewallPage() {
                 {allowedIps.length > 0 ? "Kısıtlamalı Erişim" : "Halka Açık"}
               </span>
             </div>
-          </div>
         </div>
       </div>
     </div>

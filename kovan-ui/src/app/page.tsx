@@ -99,179 +99,114 @@ export default function Dashboard() {
       if (reconnectTimeout) clearTimeout(reconnectTimeout);
       if (ws) ws.close();
     };
-  }, []);
+  }, []);  return (
+    <div className="page-container">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-4xl font-extrabold text-foreground tracking-tight">Dashboard</h1>
+          <p className="text-muted-text mt-1 text-sm font-medium">Uygulamalarınızın canlı durumunu izleyin.</p>
+        </div>
+        
+        <button
+          onClick={() => router.push("/create")}
+          className="bg-accent hover:opacity-90 text-white font-bold py-2.5 px-6 rounded-xl shadow-lg shadow-accent/20 transition-all active:scale-95 flex items-center space-x-2"
+        >
+          <span className="text-xl">+</span>
+          <span>Yeni Uygulama</span>
+        </button>
+      </div>
 
-  return (
-    <div className="min-h-screen bg-background transition-colors duration-300 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
-          <div>
-            <h1 className="text-4xl font-black text-foreground tracking-tight">
-              KOVAN<span className="text-accent">.</span>
-            </h1>
-            <p className="text-muted-text mt-1 font-medium">Platform Genel Bakış</p>
+      <div className="section-card !p-0 overflow-hidden">
+        {loading ? (
+          <div className="text-center py-20">
+            <div className="inline-block animate-spin w-8 h-8 border-4 border-accent border-t-transparent rounded-full mb-4"></div>
+            <p className="text-muted-text font-medium">Veriler yükleniyor...</p>
           </div>
-          
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={() => {
-                localStorage.removeItem("token");
-                router.push("/login");
-              }}
-              className="text-muted-text hover:text-red-500 transition-colors text-sm font-medium mr-2"
-            >
-              Çıkış Yap
-            </button>
-            <button
-              onClick={() => router.push("/networking")}
-              className="px-4 py-2 bg-card border border-card-border text-foreground rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all text-sm font-medium shadow-sm"
-            >
-              🌐 Ağ Yönetimi
-            </button>
-            <button
-              onClick={() => router.push("/settings")}
-              className="px-4 py-2 bg-card border border-card-border text-foreground rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all text-sm font-medium shadow-sm"
-            >
-              ⚙️ Ayarlar
-            </button>
-            <ThemeToggle />
-            <button
-              onClick={() => router.push("/create")}
-              className="bg-accent hover:opacity-90 text-white font-bold py-2.5 px-6 rounded-xl shadow-lg shadow-blue-200 dark:shadow-none transition-all active:scale-95"
-            >
-              + Yeni Uygulama
-            </button>
+        ) : instances.length === 0 ? (
+          <div className="text-center py-20 px-6">
+             <div className="w-16 h-16 bg-accent/10 text-accent rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+             </div>
+             <h2 className="text-xl font-bold text-foreground">Henüz uygulama yok</h2>
+             <p className="text-muted-text mt-2 max-w-sm mx-auto">Hemen ilk uygulamanızı oluşturun ve Kovan'ın gücünü keşfedin.</p>
+             <button onClick={() => router.push("/create")} className="mt-6 px-6 py-2 bg-accent text-white rounded-lg font-bold">Uygulama Oluştur</button>
           </div>
-        </header>
-
-        <div className="bg-card/70 backdrop-blur-md border border-card-border rounded-2xl p-6 shadow-sm overflow-hidden">
-          {loading ? (
-            <div className="text-center py-10 text-muted-text">Yükleniyor...</div>
-          ) : instances.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-500 mb-4">
-                🚀
-              </div>
-              <h3 className="text-xl font-medium text-foreground mb-2">Henüz uygulamanız yok</h3>
-              <p className="text-muted-text max-w-md mx-auto mb-6">
-                Hemen yeni bir uygulama oluşturarak Kovan altyapısının tadını çıkarın.
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-card-border text-sm text-muted-text">
-                    <th className="pb-3 font-medium px-4">Proje Adı</th>
-                    <th className="pb-3 font-medium px-4">Adres (Domain)</th>
-                    <th className="pb-3 font-medium px-4">Teknoloji</th>
-                    <th className="pb-3 font-medium px-4">Durum</th>
-                    <th className="pb-3 font-medium px-4 text-center">CPU</th>
-                    <th className="pb-3 font-medium px-4 text-center">RAM</th>
-                    <th className="pb-3 font-medium px-4 text-right">Aksiyonlar</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-card-border">
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-background/50 border-b border-card-border">
+                  <th className="px-6 py-4 text-[10px] font-bold text-muted-text uppercase tracking-widest">Proje</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-muted-text uppercase tracking-widest">Domain</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-muted-text uppercase tracking-widest text-center">Durum</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-muted-text uppercase tracking-widest text-center">Kaynaklar</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-muted-text uppercase tracking-widest text-right">İşlemler</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-card-border">
                   {instances.map((inst) => {
                     const instMetrics = metrics[inst.id];
                     return (
-                      <tr key={inst.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                        <td className="py-4 px-4 font-medium text-foreground">
-                          <div className="flex items-center">
-                            {inst.name}
-                            {inst.git_url && (
-                              <span className="ml-2 inline-flex items-center text-[10px] bg-slate-100 dark:bg-slate-700 text-muted-text px-1.5 py-0.5 rounded border border-card-border">
-                                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
-                                GitHub
+                      <tr key={inst.id} className="hover:bg-hover-bg transition-colors group">
+                        <td className="py-5 px-6">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-foreground text-sm group-hover:text-accent transition-colors">{inst.name}</span>
+                            <div className="flex items-center mt-1 space-x-2">
+                              <span className="text-[10px] font-mono text-muted-text bg-background px-1.5 py-0.5 rounded border border-card-border">
+                                {inst.image_tag}
                               </span>
-                            )}
+                              {inst.git_url && (
+                                <span className="text-[10px] text-accent font-bold flex items-center">
+                                  <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                                  Git
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </td>
-                        <td className="py-4 px-4">
-                          <div className="flex flex-col space-y-1">
+                        <td className="py-5 px-6">
+                          <div className="flex flex-col">
                             <a
                               href={`http://${inst.subdomain}.kovan.local`}
-                              target="_blank"
-                              rel="noreferrer"
+                              target="_blank" rel="noreferrer"
                               className="text-accent hover:underline text-sm font-medium"
                             >
                               {inst.subdomain}.kovan.local
                             </a>
                             {inst.custom_domain && (
-                              <a
-                                href={`https://${inst.custom_domain}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-purple-500 hover:underline text-[10px] font-bold flex items-center"
-                              >
-                                🔒 {inst.custom_domain}
-                              </a>
+                              <span className="text-[10px] text-muted-text flex items-center mt-1">
+                                🔗 {inst.custom_domain}
+                              </span>
                             )}
                           </div>
                         </td>
-                        <td className="py-4 px-4 text-sm text-muted-text">
-                          <span className="bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded-lg border border-card-border font-mono text-[10px]">
-                            {inst.image_tag}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                        <td className="py-5 px-6 text-center">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${
                             inst.status === "running" 
-                            ? "bg-green-100 dark:bg-green-900/30 text-green-600" 
-                            : "bg-red-100 dark:bg-red-900/30 text-red-600"
+                            ? "bg-green-500/10 text-green-500 border-green-500/20" 
+                            : "bg-red-500/10 text-red-500 border-red-500/20"
                           }`}>
                             <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${inst.status === "running" ? "bg-green-500 animate-pulse" : "bg-red-500"}`}></span>
-                            {inst.status === "running" ? "AKTİF" : "DURDURULDU"}
+                            {inst.status === "running" ? "Aktif" : "Durduruldu"}
                           </span>
                         </td>
-                        {/* CPU Sütunu */}
-                        <td className="py-4 px-4 text-sm">
+                        <td className="py-5 px-6 text-center">
                           {inst.status === "running" ? (
-                            instMetrics ? (
-                              <div className="flex items-center">
-                                <span className="w-10 text-right font-mono text-slate-600 mr-2">
-                                  {instMetrics.cpu_percentage.toFixed(2)}%
-                                </span>
-                                <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                  <div 
-                                    className="h-full bg-blue-500 transition-all duration-500" 
-                                    style={{ width: `${Math.min(instMetrics.cpu_percentage, 100)}%` }}
-                                  ></div>
-                                </div>
+                            <div className="flex flex-col items-center">
+                              <div className="flex items-center space-x-2 text-[10px] font-mono">
+                                <span className="text-foreground font-bold">{instMetrics?.cpu_percentage.toFixed(1) || "0.0"}% CPU</span>
+                                <span className="text-muted-text">/</span>
+                                <span className="text-foreground font-bold">{instMetrics?.memory_usage_mb.toFixed(0) || "0"} MB</span>
                               </div>
-                            ) : (
-                              <span className="text-slate-400 text-xs">Yükleniyor...</span>
-                            )
+                              <div className="text-[9px] text-muted-text mt-1 uppercase tracking-tighter">
+                                Limit: {inst.cpu_limit || "∞"} CPU • {inst.memory_limit || "∞"}MB
+                              </div>
+                            </div>
                           ) : (
-                            <span className="text-slate-300">-</span>
+                            <span className="text-muted-text text-xs">—</span>
                           )}
                         </td>
-                        {/* CPU Limit */}
-                        <td className="py-4 px-4 text-[10px] text-slate-400 font-mono">
-                          {inst.cpu_limit > 0 ? `${inst.cpu_limit.toFixed(1)} Core` : "∞"}
-                        </td>
-                        {/* RAM Sütunu */}
-                        <td className="py-4 px-4 text-sm">
-                          {inst.status === "running" ? (
-                            instMetrics ? (
-                              <div className="flex items-center">
-                                <span className="font-mono text-slate-600">
-                                  {instMetrics.memory_usage_mb.toFixed(1)} MB
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="text-slate-400 text-xs">Yükleniyor...</span>
-                            )
-                          ) : (
-                            <span className="text-slate-300">-</span>
-                          )}
-                        </td>
-                        {/* RAM Limit */}
-                        <td className="py-4 px-4 text-[10px] text-slate-400 font-mono">
-                          {inst.memory_limit > 0 ? `${inst.memory_limit} MB` : "∞"}
-                        </td>
-                        {/* Aksiyonlar Sütunu */}
-                        <td className="py-4 px-4 text-right">
+                        <td className="py-5 px-6 text-right">
                           <div className="flex justify-end space-x-2">
                             {inst.status === "running" && (
                               <>
@@ -323,6 +258,5 @@ export default function Dashboard() {
           )}
         </div>
       </div>
-    </div>
-  );
+    );
 }

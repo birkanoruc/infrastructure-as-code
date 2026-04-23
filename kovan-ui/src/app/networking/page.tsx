@@ -28,33 +28,24 @@ export default function NetworkingPage() {
   if (loading) return <div className="p-10 text-center text-muted-text">Ağ topolojisi yükleniyor...</div>;
 
   return (
-    <div className="min-h-screen bg-background transition-colors duration-300 p-8 text-foreground">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight">Ağ Yönetimi</h1>
-            <p className="text-muted-text mt-1 font-medium">İzole Docker ağları ve uygulama topolojisi</p>
-          </div>
-          <button
-            onClick={() => router.push("/")}
-            className="px-5 py-2 bg-card border border-card-border text-foreground rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all text-sm font-medium shadow-sm"
-          >
-            Geri Dön
-          </button>
-        </div>
+    <div className="page-container">
+      <div>
+        <h1 className="text-4xl font-extrabold text-foreground tracking-tight">Ağ Yönetimi</h1>
+        <p className="text-muted-text mt-1 font-medium">İzole Docker ağları ve uygulama topolojisi</p>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
             {networks.length === 0 ? (
-              <div className="bg-card rounded-2xl border border-card-border p-12 text-center text-muted-text">
+              <div className="section-card p-12 text-center text-muted-text">
                 Henüz aktif bir ağ bulunamadı.
               </div>
             ) : (
               networks.map((net) => (
-                <div key={net.id} className="bg-card rounded-2xl border border-card-border shadow-sm overflow-hidden">
-                  <div className="p-6 border-b border-card-border flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/30">
+                <div key={net.id} className="section-card !p-0 overflow-hidden">
+                  <div className="p-6 border-b border-card-border flex justify-between items-center bg-background/50">
                     <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
+                      <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center text-accent">
                         🌐
                       </div>
                       <div>
@@ -126,6 +117,5 @@ export default function NetworkingPage() {
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
 }

@@ -1,1 +1,19 @@
-.ai/*
+# AI Plans
+.ai/
+
+# Go
+bin/
+kovan-panel/kovan.db
+kovan-panel/kovan.db-journal
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+build/
+.env*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db

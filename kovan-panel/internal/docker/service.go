@@ -34,7 +34,7 @@ func PullImage(ctx context.Context, imageName string) error {
 }
 
 // CreateAndStartContainer yeni bir konteyner oluşturur ve başlatır.
-func CreateAndStartContainer(ctx context.Context, containerName, imageName, hostPort, containerPort string) (string, error) {
+func CreateAndStartContainer(ctx context.Context, containerName, imageName, hostPort, containerPort, hostPath, targetPath string) (string, error) {
 	// Önce varsa eskiyi (çakışanı) silelim
 	cli.ContainerRemove(ctx, containerName, container.RemoveOptions{Force: true})
 
@@ -47,6 +47,12 @@ func CreateAndStartContainer(ctx context.Context, containerName, imageName, host
 		},
 	}
 
+	// Host makinedeki klasörü konteyner içine bağla (Bind Mount)
+	binds := []string{}
+	if hostPath != "" && targetPath != "" {
+		binds = append(binds, fmt.Sprintf("%s:%s", hostPath, targetPath))
+	}
+
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: imageName,
 		ExposedPorts: nat.PortSet{
@@ -54,6 +60,7 @@ func CreateAndStartContainer(ctx context.Context, containerName, imageName, host
 		},
 	}, &container.HostConfig{
 		PortBindings: portBindings,
+		Binds:        binds,
 	}, nil, nil, containerName)
 
 	if err != nil {

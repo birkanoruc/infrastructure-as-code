@@ -20,6 +20,8 @@ export default function CreateInstance() {
   const [formData, setFormData] = useState({
     name: "",
     subdomain: "",
+    custom_domain: "",
+    git_url: "",
     template_id: "",
   });
 
@@ -37,15 +39,29 @@ export default function CreateInstance() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+    }
+  }, [router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.subdomain || !formData.template_id) return;
+    if (!formData.name || !formData.subdomain || !formData.template_id) {
+      alert("Lütfen tüm alanları doldurun!");
+      return;
+    }
     
     setSubmitting(true);
+    const token = localStorage.getItem("token");
     try {
       const res = await fetch("http://127.0.0.1:3000/api/instances", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}` 
+        },
         body: JSON.stringify(formData),
       });
       const data = await res.json();
@@ -104,6 +120,33 @@ export default function CreateInstance() {
                       .kovan.local
                     </span>
                   </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Gerçek Alan Adı (Opsiyonel)</label>
+                  <input
+                    type="text"
+                    placeholder="Örn: benimsitem.com"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    value={formData.custom_domain}
+                    onChange={(e) => setFormData({ ...formData, custom_domain: e.target.value.toLowerCase().trim() })}
+                  />
+                  <p className="text-xs text-slate-500 mt-2">A DNS kaydını sunucu IP'nize yönlendirirseniz, sistem otomatik olarak ücretsiz SSL alacaktır.</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">GitHub Repo URL (Opsiyonel)</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <svg className="h-5 w-5 text-slate-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="https://github.com/kullanici/repo"
+                      className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent transition-all"
+                      value={formData.git_url}
+                      onChange={(e) => setFormData({ ...formData, git_url: e.target.value.trim() })}
+                    />
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">Belirtilirse, uygulama kodu doğrudan bu repodan çekilecektir.</p>
                 </div>
               </div>
 

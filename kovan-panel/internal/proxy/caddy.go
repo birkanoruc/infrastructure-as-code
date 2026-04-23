@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -45,7 +46,7 @@ type Upstream struct {
 
 // SyncRoutes, veritabanındaki tüm çalışan siteleri bulur ve Caddy'ye anlık yükler.
 func SyncRoutes() error {
-	rows, err := db.DB.Query("SELECT subdomain, port FROM instances WHERE status = 'running'")
+	rows, err := db.DB.Query("SELECT subdomain, custom_domain, port FROM instances WHERE status = 'running'")
 	if err != nil {
 		return fmt.Errorf("veritabanı okuma hatası: %v", err)
 	}
@@ -56,19 +57,26 @@ func SyncRoutes() error {
 
 	for rows.Next() {
 		var subdomain string
+		var customDomain sql.NullString
 		var port int
-		if err := rows.Scan(&subdomain, &port); err != nil {
+		if err := rows.Scan(&subdomain, &customDomain, &port); err != nil {
 			continue
 		}
 
-		// Sadece alt alan adı testleri için
+		// Temel alt alan adı
 		domain := fmt.Sprintf("%s.kovan.local", subdomain)
+		hosts := []string{domain}
+		
+		// Eğer kullanıcı gerçek bir domain eklemişse
+		if customDomain.Valid && customDomain.String != "" {
+			hosts = append(hosts, customDomain.String)
+		}
 		
 		// Caddy Docker içerisinde çalıştığı için, host makinedeki porta host.docker.internal ile ulaşır.
 		upstream := fmt.Sprintf("host.docker.internal:%d", port)
 
 		routes = append(routes, Route{
-			Match: []Match{{Host: []string{domain}}},
+			Match: []Match{{Host: hosts}},
 			Handle: []Handle{{
 				Handler:   "reverse_proxy",
 				Upstreams: []Upstream{{Dial: upstream}},
@@ -83,7 +91,8 @@ func SyncRoutes() error {
 			HTTP: HTTP{
 				Servers: map[string]Server{
 					"srv0": {
-						Listen: []string{":80"},
+						// Caddy'nin hem 80 hem 443 portlarını dinlemesi (Otomatik SSL için gerekli)
+						Listen: []string{":80", ":443"},
 						Routes: routes,
 					},
 				},

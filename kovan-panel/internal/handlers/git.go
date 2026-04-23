@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,6 +11,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"kovan-panel/internal/db"
 	"kovan-panel/internal/docker"
+	"kovan-panel/internal/utils"
 )
 
 func GitPullAndRedeploy(c *fiber.Ctx) error {
@@ -17,8 +19,14 @@ func GitPullAndRedeploy(c *fiber.Ctx) error {
 	instanceId := c.Params("id")
 
 	// 1. Instance bilgilerini al
-	var name, subdomain, imageTag, port string
-	err := db.DB.QueryRow("SELECT name, subdomain, image_tag, port FROM instances WHERE id = ? AND user_id = ?", instanceId, userId).Scan(&name, &subdomain, &imageTag, &port)
+	var name, subdomain, image, port, containerPort, targetPath, envVarsStr string
+	var cpuLimit float64
+	var memoryLimit int64
+	err := db.DB.QueryRow(`
+		SELECT name, subdomain, image, port, container_port, target_path, cpu_limit, memory_limit, env_vars 
+		FROM instances WHERE id = ? AND user_id = ?`, 
+		instanceId, userId).Scan(&name, &subdomain, &image, &port, &containerPort, &targetPath, &cpuLimit, &memoryLimit, &envVarsStr)
+	
 	if err != nil {
 		return c.Status(404).JSON(fiber.Map{"error": "Uygulama bulunamadı"})
 	}
@@ -37,24 +45,27 @@ func GitPullAndRedeploy(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "Bu uygulama Git ile kurulmamış"})
 	}
 
-	// 3. Konteyneri Yeniden Başlat (Kodun güncellenmesi için mount zaten var ama restart iyidir)
+	// 3. Konteyneri Yeniden Başlat
 	ctx := context.Background()
 	containerName := fmt.Sprintf("kovan-%s", subdomain)
-	
-	// Template verisini bul (mount_path için)
-	tpl := GetTemplateByID(imageTag) // Bu fonksiyon instance.go içinde public olmalı veya burada tekrar tanımlanmalı
-	if tpl == nil {
-		return c.Status(500).JSON(fiber.Map{"error": "Template bulunamadı"})
-	}
-	targetPath := tpl["mount_path"].(string)
-	containerPort := tpl["port"].(string)
+	networkName := fmt.Sprintf("kovan-user-%d", userId)
 
-	// Durdur ve Yeniden Başlat
-	docker.StopContainer(ctx, containerName)
-	_, err = docker.CreateAndStartContainer(ctx, containerName, tpl["image"].(string), port, containerPort, hostPath, targetPath)
+	docker.EnsureNetworkExists(ctx, networkName)
+
+	var envVars []string
+	json.Unmarshal([]byte(envVarsStr), &envVars)
+
+	docker.StopAndRemoveContainer(ctx, containerName)
+	_, err = docker.CreateAndStartContainer(ctx, containerName, image, port, containerPort, hostPath, targetPath, cpuLimit, memoryLimit, envVars, networkName)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Yeniden başlatma hatası: " + err.Error()})
 	}
+
+	// Webhook Tetikle (v3 Step 6)
+	utils.TriggerWebhook(userId, "deploy.success", name, fiber.Map{
+		"subdomain": subdomain,
+		"method":    "git-pull",
+	})
 
 	return c.JSON(fiber.Map{"status": "success", "message": "Uygulama başarıyla güncellendi ve yeniden başlatıldı"})
 }

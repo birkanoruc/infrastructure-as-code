@@ -3,7 +3,9 @@ package handlers
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,24 +19,43 @@ import (
 )
 
 type CreateInstanceRequest struct {
-	Name         string `json:"name"`
-	Subdomain    string `json:"subdomain"`
-	CustomDomain string `json:"custom_domain"`
-	GitURL       string `json:"git_url"` // Yeni: GitHub Repo URL
-	TemplateID   string `json:"template_id"`
+	Name         string  `json:"name"`
+	Subdomain    string  `json:"subdomain"`
+	CustomDomain string  `json:"custom_domain"`
+	GitURL       string  `json:"git_url"`
+	TemplateID   string  `json:"template_id"`
+	CPULimit     float64 `json:"cpu_limit"`    // Yeni: v3
+	MemoryLimit  int64   `json:"memory_limit"` // Yeni: v3
 }
 
-// GetTemplateByID yardımcı fonksiyonu
-// GetTemplateByID şablon bilgilerini getirir.
+// GetTemplateByID şablon bilgilerini veritabanından getirir.
 func GetTemplateByID(id string) map[string]interface{} {
-	// İleride bu veritabanından çekilecek, şimdilik statik eşleştirme
-	templates := map[string]map[string]interface{}{
-		"nginx":        {"image": "nginx:alpine", "port": "80", "mount_path": "/usr/share/nginx/html"},
-		"php-8-apache": {"image": "php:8.2-apache", "port": "80", "mount_path": "/var/www/html"},
-		"node-18":      {"image": "node:18-alpine", "port": "3000", "mount_path": "/app"},
-		"python-3-11":  {"image": "python:3.11-alpine", "port": "8000", "mount_path": "/app"},
+	var name, description, image, category, mountPath string
+	var portsJSON, envVarsJSON string
+	err := db.DB.QueryRow("SELECT name, description, image, ports, env_vars, category, mount_path FROM templates WHERE id = ?", id).
+		Scan(&name, &description, &image, &portsJSON, &envVarsJSON, &category, &mountPath)
+	
+	if err != nil {
+		return nil
 	}
-	return templates[id]
+
+	var ports []int
+	json.Unmarshal([]byte(portsJSON), &ports)
+	
+	firstPort := "80"
+	if len(ports) > 0 {
+		firstPort = strconv.Itoa(ports[0])
+	}
+
+	return map[string]interface{}{
+		"name":        name,
+		"description": description,
+		"image":       image,
+		"port":        firstPort,
+		"mount_path":  mountPath,
+		"category":    category,
+		"env_vars":    envVarsJSON,
+	}
 }
 
 // CreateInstance yeni bir uygulama ayağa kaldırır.
@@ -62,8 +83,8 @@ func CreateInstance(c *fiber.Ctx) error {
 	}
 
 	// 2. Veritabanına Kaydet
-	insertQuery := `INSERT INTO instances (name, subdomain, custom_domain, git_url, image_tag, port, status, user_id) VALUES (?, ?, ?, ?, ?, ?, 'creating', ?)`
-	res, err := db.DB.Exec(insertQuery, req.Name, req.Subdomain, req.CustomDomain, req.GitURL, imageName, hostPort, userId)
+	insertQuery := `INSERT INTO instances (name, subdomain, custom_domain, git_url, image_tag, port, status, cpu_limit, memory_limit, user_id) VALUES (?, ?, ?, ?, ?, ?, 'creating', ?, ?, ?)`
+	res, err := db.DB.Exec(insertQuery, req.Name, req.Subdomain, req.CustomDomain, req.GitURL, imageName, hostPort, req.CPULimit, req.MemoryLimit, userId)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Veritabanı kayıt hatası (Subdomain kullanılıyor olabilir)"})
 	}
@@ -85,8 +106,8 @@ func CreateInstance(c *fiber.Ctx) error {
 		if err := cmd.Run(); err != nil {
 			return c.Status(500).JSON(fiber.Map{"error": "Git clone hatası: " + err.Error()})
 		}
-	} else {
-		// Varsayılan bir index dosyası oluştur (eğer boşsa)
+	} else if tpl["category"] != "database" {
+		// Varsayılan bir index dosyası oluştur (Sadece web uygulamaları için, DB'ler temiz dizin ister)
 		defaultFile := filepath.Join(hostPath, "index.html")
 		if _, err := os.Stat(defaultFile); os.IsNotExist(err) {
 			os.WriteFile(defaultFile, []byte(fmt.Sprintf("<h1>Kovan: %s calisiyor!</h1>", req.Name)), 0644)
@@ -96,24 +117,52 @@ func CreateInstance(c *fiber.Ctx) error {
 	// 4. Docker İmajını Çek ve Konteyneri Ayağa Kaldır
 	ctx := context.Background()
 	containerName := fmt.Sprintf("kovan-%s", req.Subdomain)
+	networkName := fmt.Sprintf("kovan-user-%d", userId)
+
+	// Kullanıcı ağının varlığından emin ol (v3 Step 5)
+	if err := docker.EnsureNetworkExists(ctx, networkName); err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Ağ oluşturulamadı: " + err.Error()})
+	}
 	
 	if err := docker.PullImage(ctx, imageName); err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "İmaj indirilemedi: " + err.Error()})
 	}
 
-	_, err = docker.CreateAndStartContainer(ctx, containerName, imageName, strconv.Itoa(hostPort), containerPort, hostPath, targetPath)
+	var envVars []string
+	json.Unmarshal([]byte(tpl["env_vars"].(string)), &envVars)
+
+	_, err = docker.CreateAndStartContainer(ctx, containerName, imageName, strconv.Itoa(hostPort), containerPort, hostPath, targetPath, req.CPULimit, req.MemoryLimit, envVars, networkName)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Konteyner başlatılamadı: " + err.Error()})
 	}
 
-	// Durumu Güncelle
-	db.DB.Exec(`UPDATE instances SET status = 'running' WHERE id = ?`, id)
+	// Durumu ve Konfigürasyonu Güncelle (Restore için gerekli)
+	envVarsJSON, _ := json.Marshal(envVars)
+	db.DB.Exec(`
+		UPDATE instances SET 
+			status = 'running', 
+			image = ?, 
+			port = ?, 
+			container_port = ?, 
+			host_path = ?, 
+			target_path = ?, 
+			cpu_limit = ?, 
+			memory_limit = ?, 
+			env_vars = ?
+		WHERE id = ?`, 
+		imageName, strconv.Itoa(hostPort), containerPort, hostPath, targetPath, req.CPULimit, req.MemoryLimit, string(envVarsJSON), id)
 
 	// 4. Caddy Router'ı Güncelle (Zero Downtime)
 	if err := proxy.SyncRoutes(); err != nil {
 		// Loglayabiliriz ama işlemi kesmeye gerek yok
 		fmt.Printf("Uyarı: Caddy senkronizasyon hatası: %v\n", err)
 	}
+
+	// Webhook Tetikle (v3 Step 6)
+	utils.TriggerWebhook(userId, "deploy.success", req.Name, fiber.Map{
+		"subdomain": req.Subdomain,
+		"domain":    fmt.Sprintf("%s.kovan.local", req.Subdomain),
+	})
 
 	return c.JSON(fiber.Map{
 		"status":  "success",
@@ -126,7 +175,7 @@ func CreateInstance(c *fiber.Ctx) error {
 // ListInstances veritabanındaki tüm uygulamaları getirir.
 func ListInstances(c *fiber.Ctx) error {
 	userId := c.Locals("user_id").(int)
-	rows, err := db.DB.Query("SELECT id, name, subdomain, custom_domain, git_url, image_tag, port, status, created_at FROM instances WHERE user_id = ? ORDER BY id DESC", userId)
+	rows, err := db.DB.Query("SELECT id, name, subdomain, custom_domain, git_url, image_tag, port, status, cpu_limit, memory_limit, created_at, allowed_ips FROM instances WHERE user_id = ? ORDER BY id DESC", userId)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Veritabanı okuma hatası"})
 	}
@@ -136,8 +185,10 @@ func ListInstances(c *fiber.Ctx) error {
 	for rows.Next() {
 		var id, port int
 		var name, subdomain, imageTag, status, createdAt string
-		var customDomain, gitUrl sql.NullString
-		if err := rows.Scan(&id, &name, &subdomain, &customDomain, &gitUrl, &imageTag, &port, &status, &createdAt); err != nil {
+		var customDomain, gitUrl, allowedIps sql.NullString
+		var cpuLimit float64
+		var memoryLimit int64
+		if err := rows.Scan(&id, &name, &subdomain, &customDomain, &gitUrl, &imageTag, &port, &status, &cpuLimit, &memoryLimit, &createdAt, &allowedIps); err != nil {
 			continue
 		}
 		
@@ -155,7 +206,10 @@ func ListInstances(c *fiber.Ctx) error {
 			"image_tag":     imageTag,
 			"port":          port,
 			"status":        status,
+			"cpu_limit":     cpuLimit,
+			"memory_limit":  memoryLimit,
 			"created_at":    createdAt,
+			"allowed_ips":   allowedIps.String,
 		})
 	}
 
@@ -168,4 +222,44 @@ func ListInstances(c *fiber.Ctx) error {
 		"status": "success",
 		"data":   instances,
 	})
+}
+// GetInstanceLogs, uygulamanın geçmiş loglarını döndürür.
+func GetInstanceLogs(c *fiber.Ctx) error {
+	userId := c.Locals("user_id").(int)
+	id := c.Params("id")
+
+	var subdomain string
+	err := db.DB.QueryRow("SELECT subdomain FROM instances WHERE id = ? AND user_id = ?", id, userId).Scan(&subdomain)
+	if err != nil {
+		return c.Status(404).JSON(fiber.Map{"error": "Uygulama bulunamadı."})
+	}
+
+	containerName := fmt.Sprintf("kovan-%s", subdomain)
+	ctx := context.Background()
+
+	// Docker'dan son 1000 satırı çek (Follow: false)
+	reader, err := docker.StreamLogs(ctx, containerName)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Loglar çekilemedi: " + err.Error()})
+	}
+	defer reader.Close()
+
+	// Docker multiplexed formatını temizle
+	var logsText string
+	for {
+		header := make([]byte, 8)
+		_, err := io.ReadFull(reader, header)
+		if err != nil {
+			break
+		}
+		count := uint32(header[4])<<24 | uint32(header[5])<<16 | uint32(header[6])<<8 | uint32(header[7])
+		payload := make([]byte, count)
+		_, err = io.ReadFull(reader, payload)
+		if err != nil {
+			break
+		}
+		logsText += string(payload)
+	}
+
+	return c.SendString(logsText)
 }

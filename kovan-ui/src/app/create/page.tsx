@@ -16,6 +16,7 @@ export default function CreateInstance() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [activeCategory, setActiveCategory] = useState("web");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -23,6 +24,8 @@ export default function CreateInstance() {
     custom_domain: "",
     git_url: "",
     template_id: "",
+    cpu_limit: 0.5,
+    memory_limit: 512,
   });
 
   useEffect(() => {
@@ -148,34 +151,99 @@ export default function CreateInstance() {
                   </div>
                   <p className="text-xs text-slate-500 mt-2">Belirtilirse, uygulama kodu doğrudan bu repodan çekilecektir.</p>
                 </div>
+
+                <div className="pt-4 border-t border-slate-100">
+                  <h3 className="text-sm font-semibold text-slate-800 mb-4 flex items-center">
+                    <span className="mr-2">⚡</span> Kaynak Limitleri (v3)
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-2">CPU Limiti (Core)</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        className="w-full px-4 py-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm"
+                        value={formData.cpu_limit}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          setFormData({ ...formData, cpu_limit: isNaN(val) ? 0 : val });
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-2">RAM Limiti (MB)</label>
+                      <input
+                        type="number"
+                        step="64"
+                        min="0"
+                        className="w-full px-4 py-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm"
+                        value={formData.memory_limit}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value);
+                          setFormData({ ...formData, memory_limit: isNaN(val) ? 0 : val });
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-2">0 değeri limit olmadığı anlamına gelir. Örn: 0.5 CPU ve 512 MB RAM önerilir.</p>
+                </div>
               </div>
 
               {/* Sağ Taraf: Teknoloji Seçimi */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Teknoloji Şablonu</label>
+                <div className="flex items-center justify-between mb-4">
+                  <label className="block text-sm font-medium text-slate-700">Şablon Seçimi</label>
+                  <div className="flex bg-slate-100 p-1 rounded-lg">
+                    <button
+                      type="button"
+                      onClick={() => setActiveCategory("web")}
+                      className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${activeCategory === "web" ? "bg-white shadow-sm text-blue-600" : "text-slate-500 hover:text-slate-700"}`}
+                    >
+                      Uygulamalar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveCategory("database")}
+                      className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${activeCategory === "database" ? "bg-white shadow-sm text-purple-600" : "text-slate-500 hover:text-slate-700"}`}
+                    >
+                      Veritabanları
+                    </button>
+                  </div>
+                </div>
+
                 {loading ? (
                   <div className="animate-pulse bg-slate-100 rounded-xl h-48 w-full border border-slate-200"></div>
                 ) : (
-                  <div className="grid grid-cols-1 gap-3 max-h-[300px] overflow-y-auto pr-2 pb-2">
-                    {templates.map((tpl) => (
+                  <div className="grid grid-cols-1 gap-3 max-h-[400px] overflow-y-auto pr-2 pb-2">
+                    {templates.filter(t => (t as any).category === activeCategory).map((tpl) => (
                       <div
                         key={tpl.id}
                         onClick={() => setFormData({ ...formData, template_id: tpl.id })}
                         className={`cursor-pointer border p-4 rounded-xl transition-all ${
                           formData.template_id === tpl.id
-                            ? "border-blue-500 bg-blue-50/50 shadow-sm ring-1 ring-blue-500"
+                            ? activeCategory === "database" 
+                              ? "border-purple-500 bg-purple-50/50 shadow-sm ring-1 ring-purple-500"
+                              : "border-blue-500 bg-blue-50/50 shadow-sm ring-1 ring-blue-500"
                             : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
                         }`}
                       >
                         <div className="flex justify-between items-start">
-                          <h3 className="font-semibold text-slate-800">{tpl.name}</h3>
-                          <span className="text-xs bg-slate-100 border border-slate-200 px-2 py-0.5 rounded text-slate-600 font-mono">
+                          <div>
+                            <h3 className="font-semibold text-slate-800">{tpl.name}</h3>
+                            <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{tpl.description}</p>
+                          </div>
+                          <span className="text-[10px] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded text-slate-600 font-mono">
                             {tpl.image}
                           </span>
                         </div>
-                        <p className="text-sm text-slate-500 mt-2 line-clamp-2">{tpl.description}</p>
                       </div>
                     ))}
+                    {templates.filter(t => (t as any).category === activeCategory).length === 0 && (
+                      <div className="text-center py-10 border-2 border-dashed border-slate-100 rounded-xl text-slate-400 text-sm">
+                        Bu kategoride henüz şablon bulunmuyor.
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

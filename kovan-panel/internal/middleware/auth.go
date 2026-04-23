@@ -8,9 +8,21 @@ import (
 
 // AuthRequired, API uç noktalarını koruyan Bearer token tabanlı basit bir middleware'dir.
 func AuthRequired(c *fiber.Ctx) error {
+	// 1. Önce API Key kontrolü (Step 6 DX)
+	apiKey := c.Get("X-API-Key")
+	if apiKey != "" {
+		var userId int
+		err := db.DB.QueryRow("SELECT user_id FROM api_keys WHERE key = ?", apiKey).Scan(&userId)
+		if err == nil {
+			c.Locals("user_id", userId)
+			return c.Next()
+		}
+	}
+
+	// 2. Token Kontrolü (Geleneksel Giriş)
 	authHeader := c.Get("Authorization")
 	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-		return c.Status(401).JSON(fiber.Map{"error": "Yetkisiz erişim. Lütfen giriş yapın."})
+		return c.Status(401).JSON(fiber.Map{"error": "Yetkisiz erişim. Lütfen giriş yapın veya API Key kullanın."})
 	}
 
 	token := strings.TrimPrefix(authHeader, "Bearer ")

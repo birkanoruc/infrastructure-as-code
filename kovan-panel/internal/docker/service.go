@@ -8,6 +8,7 @@ import (
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
+	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
 )
@@ -34,7 +35,7 @@ func PullImage(ctx context.Context, imageName string) error {
 }
 
 // CreateAndStartContainer yeni bir konteyner oluşturur ve başlatır.
-func CreateAndStartContainer(ctx context.Context, containerName, imageName, hostPort, containerPort, hostPath, targetPath string) (string, error) {
+func CreateAndStartContainer(ctx context.Context, containerName, imageName, hostPort, containerPort, hostPath, targetPath string, cpuLimit float64, memoryLimit int64, envVars []string, networkName string) (string, error) {
 	// Önce varsa eskiyi (çakışanı) silelim
 	cli.ContainerRemove(ctx, containerName, container.RemoveOptions{Force: true})
 
@@ -53,15 +54,35 @@ func CreateAndStartContainer(ctx context.Context, containerName, imageName, host
 		binds = append(binds, fmt.Sprintf("%s:%s", hostPath, targetPath))
 	}
 
+	// Kaynak Sınırlandırmaları (v3 Step 1)
+	resources := container.Resources{}
+	if cpuLimit > 0 {
+		// 1.0 CPU = 1e9 NanoCPUs
+		resources.NanoCPUs = int64(cpuLimit * 1e9)
+	}
+	if memoryLimit > 0 {
+		// MB -> Bytes
+		resources.Memory = memoryLimit * 1024 * 1024
+	}
+
+	// Networking Config (v3 Step 5)
+	networkingConfig := &network.NetworkingConfig{
+		EndpointsConfig: map[string]*network.EndpointSettings{
+			networkName: {},
+		},
+	}
+
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: imageName,
+		Env:   envVars,
 		ExposedPorts: nat.PortSet{
 			nat.Port(containerPort + "/tcp"): struct{}{},
 		},
 	}, &container.HostConfig{
 		PortBindings: portBindings,
 		Binds:        binds,
-	}, nil, nil, containerName)
+		Resources:    resources,
+	}, networkingConfig, nil, containerName)
 
 	if err != nil {
 		return "", fmt.Errorf("konteyner oluşturulamadı: %v", err)
@@ -83,4 +104,48 @@ func StopContainer(ctx context.Context, containerName string) error {
 // RemoveContainer belirtilen konteyneri tamamen siler.
 func RemoveContainer(ctx context.Context, containerName string) error {
 	return cli.ContainerRemove(ctx, containerName, container.RemoveOptions{Force: true})
+}
+
+// StreamLogs konteyner loglarını okumak için bir stream döndürür.
+func StreamLogs(ctx context.Context, containerName string) (io.ReadCloser, error) {
+	options := container.LogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+		Follow:     true,
+		Timestamps: true,
+		Tail:       "100", // Son 100 satırı getir
+	}
+
+	return cli.ContainerLogs(ctx, containerName, options)
+}
+
+// StopAndRemoveContainer bir konteyneri durdurur ve siler.
+func StopAndRemoveContainer(ctx context.Context, containerName string) error {
+	timeout := 10
+	cli.ContainerStop(ctx, containerName, container.StopOptions{Timeout: &timeout})
+	return cli.ContainerRemove(ctx, containerName, container.RemoveOptions{Force: true})
+}
+
+// EnsureNetworkExists, belirtilen isimde bir Docker ağı yoksa oluşturur.
+func EnsureNetworkExists(ctx context.Context, networkName string) error {
+	networks, err := cli.NetworkList(ctx, network.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	for _, n := range networks {
+		if n.Name == networkName {
+			return nil // Ağ zaten var
+		}
+	}
+
+	_, err = cli.NetworkCreate(ctx, networkName, network.CreateOptions{
+		Driver: "bridge",
+	})
+	return err
+}
+
+// GetClient, aktif Docker istemcisini döndürür.
+func GetClient() *client.Client {
+	return cli
 }

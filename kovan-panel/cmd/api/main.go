@@ -6,6 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"kovan-panel/internal/backup"
 	"kovan-panel/internal/db"
 	"kovan-panel/internal/docker"
 	"kovan-panel/internal/routes"
@@ -14,6 +15,9 @@ import (
 func main() {
 	// Veritabanını başlat
 	db.InitDB()
+
+	// Otomatik yedekleme servisini başlat
+	backup.StartCron()
 
 	// Docker istemcisini başlat
 	if err := docker.InitDocker(); err != nil {

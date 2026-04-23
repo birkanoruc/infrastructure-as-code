@@ -34,11 +34,16 @@ type Route struct {
 	Handle []Handle `json:"handle"`
 }
 type Match struct {
-	Host []string `json:"host"`
+	Host     []string  `json:"host,omitempty"`
+	RemoteIP *RemoteIP `json:"remote_ip,omitempty"`
+}
+type RemoteIP struct {
+	Ranges []string `json:"ranges"`
 }
 type Handle struct {
-	Handler   string     `json:"handler"`
-	Upstreams []Upstream `json:"upstreams"`
+	Handler    string     `json:"handler"`
+	Upstreams  []Upstream `json:"upstreams,omitempty"`
+	StatusCode int        `json:"status_code,omitempty"`
 }
 type Upstream struct {
 	Dial string `json:"dial"`
@@ -46,7 +51,7 @@ type Upstream struct {
 
 // SyncRoutes, veritabanındaki tüm çalışan siteleri bulur ve Caddy'ye anlık yükler.
 func SyncRoutes() error {
-	rows, err := db.DB.Query("SELECT subdomain, custom_domain, port FROM instances WHERE status = 'running'")
+	rows, err := db.DB.Query("SELECT subdomain, custom_domain, port, allowed_ips FROM instances WHERE status = 'running'")
 	if err != nil {
 		return fmt.Errorf("veritabanı okuma hatası: %v", err)
 	}
@@ -59,29 +64,56 @@ func SyncRoutes() error {
 		var subdomain string
 		var customDomain sql.NullString
 		var port int
-		if err := rows.Scan(&subdomain, &customDomain, &port); err != nil {
+		var allowedIpsStr sql.NullString
+		
+		if err := rows.Scan(&subdomain, &customDomain, &port, &allowedIpsStr); err != nil {
 			continue
 		}
 
-		// Temel alt alan adı
 		domain := fmt.Sprintf("%s.kovan.local", subdomain)
 		hosts := []string{domain}
-		
-		// Eğer kullanıcı gerçek bir domain eklemişse
 		if customDomain.Valid && customDomain.String != "" {
 			hosts = append(hosts, customDomain.String)
 		}
 		
-		// Caddy Docker içerisinde çalıştığı için, host makinedeki porta host.docker.internal ile ulaşır.
 		upstream := fmt.Sprintf("host.docker.internal:%d", port)
 
-		routes = append(routes, Route{
-			Match: []Match{{Host: hosts}},
-			Handle: []Handle{{
-				Handler:   "reverse_proxy",
-				Upstreams: []Upstream{{Dial: upstream}},
-			}},
-		})
+		// Firewall Mantığı
+		var allowedIps []string
+		if allowedIpsStr.Valid && allowedIpsStr.String != "" {
+			json.Unmarshal([]byte(allowedIpsStr.String), &allowedIps)
+		}
+
+		if len(allowedIps) > 0 {
+			// Sadece belirli IP'lere izin ver
+			routes = append(routes, Route{
+				Match: []Match{{
+					Host:     hosts,
+					RemoteIP: &RemoteIP{Ranges: allowedIps},
+				}},
+				Handle: []Handle{{
+					Handler:   "reverse_proxy",
+					Upstreams: []Upstream{{Dial: upstream}},
+				}},
+			})
+			// Diğer her şeyi engelle
+			routes = append(routes, Route{
+				Match: []Match{{Host: hosts}},
+				Handle: []Handle{{
+					Handler:    "static_response",
+					StatusCode: 403,
+				}},
+			})
+		} else {
+			// Herkese açık
+			routes = append(routes, Route{
+				Match: []Match{{Host: hosts}},
+				Handle: []Handle{{
+					Handler:   "reverse_proxy",
+					Upstreams: []Upstream{{Dial: upstream}},
+				}},
+			})
+		}
 		count++
 	}
 

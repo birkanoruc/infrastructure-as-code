@@ -1,44 +1,33 @@
 package handlers
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"encoding/json"
+	"kovan-panel/internal/db"
 	"kovan-panel/internal/models"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 // GetTemplates, desteklenen tüm imaj şablonlarını (kataloğu) döndürür.
 func GetTemplates(c *fiber.Ctx) error {
-	// Şimdilik konfigürasyon olarak bellekte tutuyoruz.
-	// İleride veritabanından veya bir config dosyasından okunabilir.
-	templates := []models.Template{
-		{
-			ID:          "nginx",
-			Name:        "Nginx Static Web Server",
-			Description: "Statik web siteleri, HTML projeleri veya SPA'lar (React/Vue/Angular) için yüksek performanslı web sunucusu.",
-			Image:       "nginx:alpine",
-			Ports:       []int{80},
-		},
-		{
-			ID:          "php-8-apache",
-			Name:        "PHP 8.2 + Apache",
-			Description: "Klasik PHP uygulamaları, Laravel altyapıları veya basit betikler için hazır ortam.",
-			Image:       "php:8.2-apache",
-			Ports:       []int{80},
-		},
-		{
-			ID:          "node-18",
-			Name:        "Node.js 18",
-			Description: "Backend API'ler, Express.js, NestJS veya diğer JavaScript/TypeScript projeleri için.",
-			Image:       "node:18-alpine",
-			Ports:       []int{3000}, // Genelde Node.js projeleri 3000 kullanır
-			EnvVars:     []string{"NODE_ENV=production"},
-		},
-		{
-			ID:          "python-3-11",
-			Name:        "Python 3.11",
-			Description: "Flask, FastAPI veya temel Python betikleri için minimal ve hızlı ortam.",
-			Image:       "python:3.11-alpine",
-			Ports:       []int{8000},
-		},
+	rows, err := db.DB.Query("SELECT id, name, description, image, ports, env_vars, category, mount_path FROM templates")
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Şablonlar okunamadı"})
+	}
+	defer rows.Close()
+
+	var templates []models.Template
+	for rows.Next() {
+		var t models.Template
+		var portsJSON, envVarsJSON string
+		if err := rows.Scan(&t.ID, &t.Name, &t.Description, &t.Image, &portsJSON, &envVarsJSON, &t.Category, &t.MountPath); err != nil {
+			continue
+		}
+
+		json.Unmarshal([]byte(portsJSON), &t.Ports)
+		json.Unmarshal([]byte(envVarsJSON), &t.EnvVars)
+
+		templates = append(templates, t)
 	}
 
 	return c.JSON(fiber.Map{

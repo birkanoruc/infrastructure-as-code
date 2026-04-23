@@ -1,51 +1,56 @@
-# Kovan Hosting Panel (Infrastructure as Code)
+# 🐝 Kovan PaaS (Platform as a Service)
 
-Kovan, modern standartlarla geliştirilmiş, "sunucuyu donanım yığını değil, programlanabilir nesne olarak gören" yeni nesil bir hosting kontrol paneli ve altyapı otomasyonu sistemidir. Docker tabanlı konteyner yönetimi, dinamik Caddy yönlendirmesi ve modern bir web arayüzü ile PaaS (Platform as a Service) deneyimi sunar.
+Kovan, modern altyapı ihtiyaçları için tasarlanmış, Docker tabanlı, yüksek güvenlikli ve geliştirici dostu bir **Next-Gen Hosting Platformu**dur. Sunucuyu bir donanım yığını değil, programlanabilir bir orkestra olarak yönetmenizi sağlar.
 
-## 🚀 Mevcut Özellikler (v2)
+---
 
-Sistemimiz v2 aşamasıyla beraber aşağıdaki gelişmiş özelliklere sahip olmuştur:
+## 💎 v3 Kurumsal Özellikler
 
-### 🔐 Güvenlik ve Çoklu Kullanıcı (Multi-Tenancy)
-- **JWT Tabanlı Kimlik Doğrulama:** Tüm API uç noktaları güvenli token mekanizmasıyla korunur.
-- **İzole Kullanıcı Alanları:** Her kullanıcı sadece kendi oluşturduğu servisleri görebilir ve yönetebilir.
+Sistemimiz v3 aşamasıyla beraber "Hobi" seviyesinden "Enterprise-Ready" seviyesine yükseltilmiştir:
 
-### 📊 Gerçek Zamanlı İzleme (Monitoring)
-- **Live Metrics:** Konteynerlerin CPU ve RAM kullanımı WebSocket üzerinden anlık olarak takip edilebilir.
-- **Sistem Durumu:** Tüm servislerin çalışma durumu canlı olarak panoda görüntülenir.
+### 🛡️ Gelişmiş Güvenlik ve Ağ İzolasyonu
+- **İzole Docker Ağları:** Her kullanıcı için özel `kovan-user-{id}` ağları oluşturulur. Konteynerler sadece kendi ağlarındaki veritabanlarıyla konuşabilir.
+- **Firewall (IP Whitelisting):** Uygulamalarınıza sadece sizin belirlediğiniz IP adreslerinden erişilmesini sağlayın.
+- **Otomatik SSL:** Caddy API entegrasyonu ile tüm domainler için anında ve ücretsiz HTTPS (Let's Encrypt).
 
-### 💻 Web Tabanlı Terminal (Web SSH)
-- **xterm.js Entegrasyonu:** Tarayıcı üzerinden doğrudan konteyner içine erişim sağlayan tam fonksiyonel sanal terminal.
-- **Docker Exec Stream:** Go backend üzerinden güvenli I/O akışı.
+### ☁️ Veri Güvenliği ve Bulut Yedekleme
+- **S3 Remote Storage:** Yedeklerinizi AWS S3, Cloudflare R2 veya Minio üzerine otomatik gönderin.
+- **Tek Tıkla Restore:** Geçmiş yedeklerden saniyeler içinde geri dönün (Yerel veya S3 fark etmeksizin).
+- **Periyodik Yedekleme:** Veri kaybına karşı otomatik volume yedekleme mekanizması.
 
-### 📁 Gelişmiş Dosya Yöneticisi
-- **İzole Dosya Yapısı:** Docker Bind Mounts kullanılarak her servis için özel depolama alanları.
-- **Dosya İşlemleri:** Tarayıcı üzerinden dosya yükleme, indirme ve dizin yönetimi.
+### ⚙️ Kaynak Yönetimi ve Monitorlama
+- **CPU & RAM Quotas:** Uygulama başına kaynak limiti (Örn: 0.5 CPU, 512MB RAM) tanımlayarak sunucu sağlığını koruyun.
+- **Canlı Metrikler:** WebSocket üzerinden anlık CPU/RAM kullanım grafikleri ve log akışı.
+- **ANSI Log Viewer:** xterm.js tabanlı, renkli ve indirilebilir canlı log izleyici.
 
-### 🌐 Domain ve SSL Yönetimi
-- **Otomatik HTTPS:** Caddy API entegrasyonu ile Let's Encrypt tabanlı otomatik SSL sertifikası üretimi.
-- **Özel Domain Desteği:** Kullanıcıların kendi alan adlarını (benimsitem.com) kolayca sisteme bağlayabilmesi.
+### 🚀 Geliştirici Deneyimi (DX)
+- **API Key Yönetimi:** CI/CD süreçleriniz ve dış entegrasyonlar için programatik erişim anahtarları.
+- **Webhook Desteği:** Deployment başarılı olduğunda veya hata aldığında dış sistemlere (Discord, Slack, vb.) bildirim gönderin.
+- **GitOps Entegrasyonu:** GitHub repolarından tek tıkla deployment ve otomatik güncelleme.
+- **Dark/Light Mode:** Göz yormayan, modern ve tamamen özelleştirilebilir dashboard tasarımı.
 
-### 🛠 CI/CD ve Git Entegrasyonu
-- **GitHub Desteği:** Doğrudan GitHub reposundan uygulama ayağa kaldırma.
-- **Tek Tıkla Güncelleme:** "Git Pull & Redeploy" mekanizması ile uygulamaları kolayca güncel tutma.
+---
 
-## 🏗 Mimari Yapı
+## 🏗️ Mimari Yapı
 
-Sistem 3 ana katmandan oluşur:
+Kovan, birbirini tamamlayan 4 ana katman üzerine inşa edilmiştir:
 
-1.  **Caddy (Trafik Polisi):** Dinamik Reverse Proxy ve otomatik SSL yönetimi.
-2.  **Docker (İzole Odalar):** Uygulamaların birbirinden tamamen izole şekilde çalıştırıldığı konteyner ekosistemi.
-3.  **Go Backend (Beyin):** Docker SDK ve Caddy API'sini koordine eden, Fiber framework'ü ile güçlendirilmiş orkestra merkezi.
-4.  **Next.js Frontend (Yüz):** Tailwind CSS ve modern UI bileşenleriyle donatılmış kullanıcı arayüzü.
+1.  **Caddy (Edge Proxy):** Dinamik trafik yönetimi ve otomatik SSL orkestrasyonu.
+2.  **Docker (Runtime):** Uygulamaların izole ve kısıtlanabilir konteynerlerde çalıştırılması.
+3.  **Go Backend (Brain):** Docker SDK ve Caddy API'sini koordine eden, yüksek performanslı kontrol merkezi.
+4.  **Next.js Frontend (Interface):** Tailwind CSS 4 ve modern bileşenlerle donatılmış kullanıcı paneli.
 
-## 🛠 Teknoloji Yığını
+---
 
-- **Backend:** Go (Golang), Fiber, Docker SDK, Caddy API, SQLite
-- **Frontend:** Next.js 15+, React 19, Tailwind CSS, xterm.js, Lucide Icons
-- **Altyapı:** Docker, Caddy Server
+## 🛠️ Teknoloji Yığını
 
-## 🏁 Başlangıç
+- **Backend:** Go (Golang), Fiber, Docker SDK, Caddy API, SQLite, Docker-CLI based S3 Helper
+- **Frontend:** Next.js 15+, React 19, Tailwind CSS 4, xterm.js, Lucide Icons, LocalStorage Theme System
+- **Altyapı:** Docker, Caddy Server, Isolated Bridge Networks
+
+---
+
+## 🏁 Hızlı Başlangıç
 
 ### Gereksinimler
 - Docker & Docker Compose
@@ -69,11 +74,10 @@ Sistem 3 ana katmandan oluşur:
 
 ---
 
-## 🔮 Gelecek (v3 Planları)
+## 🗺️ v3+ Gelecek Vizyonu
+- **One-Click Marketplace:** WordPress, PostgreSQL, Redis gibi servislerin tek tıkla kurulması.
+- **Load Balancing:** Uygulama trafiğinin birden fazla konteyner arasında dağıtılması.
+- **Auto-Scaling:** Yüke göre konteyner sayısının otomatik artırılması/azaltılması.
 
-Sistemi daha da profesyonelleştirmek için planlanan geliştirmeler:
-- **Kaynak Sınırlandırma (Quotas):** Kullanıcı bazlı CPU/RAM limitleri.
-- **Otomatik Yedekleme:** Veritabanı ve dosya sistemi için periyodik backup mekanizması.
-- **One-Click Apps:** WordPress, Database (MySQL/Postgres) gibi popüler servislerin şablonlarla kurulması.
-- **Log Yönetimi:** Konteyner loglarının geçmişe dönük incelenebilmesi.
-- **API Key Desteği:** Dış entegrasyonlar için programatik erişim.
+---
+*Kovan, altyapınızı programlamanıza olanak tanır.*

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -10,38 +11,57 @@ const Icons = {
 
 const routeLabels: Record<string, string> = {
   "": "Dashboard",
-  "create": "Uygulama Oluştur",
-  "networking": "Ağ Yönetimi",
-  "firewall": "Güvenlik",
-  "settings": "Ayarlar",
-  "login": "Giriş",
-  "register": "Kayıt",
+  manage: "Yönetim",
+  create: "Yeni Uygulama",
+  settings: "Ayarlar",
+  networking: "Ağ Yönetimi",
+  logs: "Loglar",
+  firewall: "Firewall",
+  terminal: "Terminal",
+  files: "Dosyalar",
+  backups: "Yedekler",
 };
 
 export default function Breadcrumb() {
   const pathname = usePathname();
-  const pathSegments = pathname.split("/").filter(Boolean);
+  const segments = pathname.split("/").filter((s) => s);
+  const [dynamicLabels, setDynamicLabels] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const updateLabels = () => {
+      const labels: Record<string, string> = {};
+      segments.forEach(segment => {
+        if (/^\d+$/.test(segment)) {
+          const name = sessionStorage.getItem(`inst_name_${segment}`);
+          if (name) labels[segment] = name;
+        }
+      });
+      setDynamicLabels(labels);
+    };
+
+    updateLabels();
+    window.addEventListener("inst_name_updated", updateLabels);
+    return () => window.removeEventListener("inst_name_updated", updateLabels);
+  }, [pathname]);
 
   return (
-    <nav className="flex items-center space-x-2 text-sm text-muted-text">
+    <nav className="flex items-center space-x-2 text-xs font-medium text-muted-text mb-6">
       <Link href="/" className="hover:text-accent transition-colors flex items-center">
         <Icons.Home />
       </Link>
-      
-      {pathSegments.map((segment, index) => {
-        const path = `/${pathSegments.slice(0, index + 1).join("/")}`;
-        const isLast = index === pathSegments.length - 1;
-        const label = routeLabels[segment] || (segment.length > 10 ? "Detay" : segment);
+
+      {segments.map((segment, index) => {
+        const href = `/${segments.slice(0, index + 1).join("/")}`;
+        const isLast = index === segments.length - 1;
+        const label = dynamicLabels[segment] || routeLabels[segment] || segment;
 
         return (
-          <div key={path} className="flex items-center space-x-2">
-            <div className="opacity-50">
-              <Icons.ChevronRight />
-            </div>
+          <div key={href} className="flex items-center space-x-2">
+            <Icons.ChevronRight />
             {isLast ? (
-              <span className="font-bold text-foreground">{label}</span>
+              <span className="text-foreground font-bold">{label}</span>
             ) : (
-              <Link href={path} className="hover:text-accent transition-colors uppercase text-[10px] font-bold tracking-wider">
+              <Link href={href} className="hover:text-accent transition-colors">
                 {label}
               </Link>
             )}

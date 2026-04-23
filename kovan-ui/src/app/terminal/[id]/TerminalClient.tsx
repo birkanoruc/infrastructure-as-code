@@ -74,40 +74,34 @@ export default function TerminalClient() {
   }, [id]);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 p-8 font-sans flex flex-col items-center">
-      <div className="w-full max-w-5xl h-[80vh] flex flex-col">
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center space-x-4">
-            <button onClick={() => router.back()} className="text-slate-500 hover:text-slate-800 transition-colors">
-              ← Geri
-            </button>
-            <h1 className="text-2xl font-bold text-slate-800">
-              Uygulama Terminali <span className="text-slate-400 text-lg">#{id}</span>
-            </h1>
-          </div>
-          <div className="flex items-center space-x-2">
-            <span className="relative flex h-3 w-3">
-              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${status === "Bağlandı" ? "bg-green-400" : "bg-amber-400"}`}></span>
-              <span className={`relative inline-flex rounded-full h-3 w-3 ${status === "Bağlandı" ? "bg-green-500" : "bg-amber-500"}`}></span>
-            </span>
-            <span className="text-sm font-medium text-slate-600">{status}</span>
-          </div>
+    <div className="mt-4 flex flex-col space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-xl font-bold text-foreground flex items-center">
+             <span className="w-8 h-8 bg-slate-800/10 text-slate-800 dark:text-slate-200 rounded-lg flex items-center justify-center mr-3 text-sm">⌨️</span>
+             SSH Terminal
+          </h2>
+          <p className="text-xs text-muted-text mt-1">Uygulama kapsayıcısına doğrudan komut satırı erişimi.</p>
         </div>
+        <div className="flex items-center space-x-3 bg-hover-bg px-4 py-2 rounded-xl border border-card-border shadow-sm">
+          <span className="relative flex h-2.5 w-2.5">
+            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${status === "Bağlandı" ? "bg-green-400" : "bg-amber-400"}`}></span>
+            <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${status === "Bağlandı" ? "bg-green-500" : "bg-amber-500"}`}></span>
+          </span>
+          <span className="text-[10px] font-bold text-foreground uppercase tracking-widest">{status}</span>
+        </div>
+      </div>
 
-        {/* Terminal Window (Glassmorphism Container) */}
-        <div className="flex-1 bg-slate-900 rounded-xl overflow-hidden shadow-xl border border-slate-700/50 flex flex-col">
-          {/* Mac Like Header */}
-          <div className="bg-slate-800 px-4 py-3 flex items-center border-b border-slate-700/50">
-            <div className="flex space-x-2">
-              <div className="w-3 h-3 rounded-full bg-red-500"></div>
-              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-              <div className="w-3 h-3 rounded-full bg-green-500"></div>
-            </div>
-            <div className="mx-auto text-xs font-medium text-slate-400">root@kovan-app</div>
+      <div className="flex-1 bg-slate-950 rounded-2xl overflow-hidden shadow-2xl border border-card-border flex flex-col h-[65vh]">
+        <div className="bg-slate-900 px-6 py-3 flex items-center border-b border-white/5">
+          <div className="flex space-x-2">
+            <div className="w-2.5 h-2.5 rounded-full bg-red-500/50"></div>
+            <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/50"></div>
+            <div className="w-2.5 h-2.5 rounded-full bg-green-500/50"></div>
           </div>
-          {/* Terminal Content */}
-          <div className="flex-1 w-full h-full min-h-[400px] p-4 overflow-hidden" ref={terminalRef}></div>
+          <div className="mx-auto text-[10px] font-bold text-slate-500 uppercase tracking-widest">root@kovan-container:{id}</div>
         </div>
+        <div className="flex-1 w-full h-full p-6 overflow-hidden" ref={terminalRef}></div>
       </div>
     </div>
   );

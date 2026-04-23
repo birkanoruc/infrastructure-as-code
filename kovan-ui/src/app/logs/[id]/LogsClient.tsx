@@ -92,12 +92,12 @@ export default function LogsClient() {
   }, [id, autoScroll]);
 
   return (
-    <div className="space-y-6">
+    <div className="page-container">
       <div className="flex justify-between items-end">
         <div className="flex flex-col space-y-2">
           <div className="flex items-center space-x-4">
-            <h1 className="text-2xl font-bold text-foreground">
-              Uygulama Logları <span className="text-muted-text text-lg">#{id}</span>
+            <h1 className="text-4xl font-extrabold text-foreground tracking-tight">
+              Uygulama Logları <span className="text-muted-text text-2xl ml-2">#{id}</span>
             </h1>
           </div>
           <div className="flex items-center space-x-2">
@@ -112,15 +112,15 @@ export default function LogsClient() {
         <div className="flex items-center space-x-4">
           <button 
             onClick={() => setAutoScroll(!autoScroll)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${autoScroll ? "bg-accent text-white border-accent" : "bg-card text-muted-text border-card-border hover:bg-slate-50 dark:hover:bg-slate-800"}`}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border shadow-sm ${autoScroll ? "bg-accent text-white border-accent" : "bg-card text-muted-text border-card-border hover:bg-hover-bg"}`}
           >
             {autoScroll ? "Otomatik Kaydırma: AÇIK" : "Otomatik Kaydırma: KAPALI"}
           </button>
           <button 
             onClick={downloadLogs}
-            className="px-3 py-1.5 bg-card border border-card-border hover:bg-slate-50 dark:hover:bg-slate-800 text-foreground text-xs font-medium rounded-lg transition-colors flex items-center shadow-sm"
+            className="px-4 py-2 bg-card border border-card-border hover:bg-hover-bg text-foreground text-xs font-bold rounded-xl transition-all flex items-center shadow-sm"
           >
-            <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
             Logları İndir (.txt)
           </button>
         </div>

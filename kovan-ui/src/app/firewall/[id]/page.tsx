@@ -78,13 +78,13 @@ export default function FirewallPage() {
   if (loading) return <div className="p-10 text-center">Yükleniyor...</div>;
 
   return (
-    <div className="space-y-8">
+    <div className="page-container">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Firewall Ayarları</h1>
+        <h1 className="text-4xl font-extrabold text-foreground tracking-tight">Firewall Ayarları</h1>
         <p className="text-muted-text mt-1 text-sm font-medium">Bu uygulama için IP tabanlı erişim kısıtlamalarını yönetin.</p>
       </div>
 
-      <div className="max-w-2xl">
+      <div className="max-w-4xl section-card">
         {/* IP Beyaz Listesi Section */}
           <div className="mb-8">
             <h2 className="text-lg font-bold text-foreground mb-2">IP Beyaz Listesi (Whitelist)</h2>

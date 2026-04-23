@@ -189,18 +189,18 @@ export default function CreateInstance() {
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <label className="block text-sm font-medium text-foreground">Şablon Seçimi</label>
-                  <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                  <div className="flex bg-hover-bg p-1 rounded-lg border border-card-border">
                     <button
                       type="button"
                       onClick={() => setActiveCategory("web")}
-                      className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${activeCategory === "web" ? "bg-card shadow-sm text-accent" : "text-muted-text hover:text-foreground"}`}
+                      className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${activeCategory === "web" ? "bg-card shadow-sm text-accent ring-1 ring-card-border" : "text-muted-text hover:text-foreground"}`}
                     >
                       Uygulamalar
                     </button>
                     <button
                       type="button"
                       onClick={() => setActiveCategory("database")}
-                      className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${activeCategory === "database" ? "bg-card shadow-sm text-purple-600" : "text-muted-text hover:text-foreground"}`}
+                      className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${activeCategory === "database" ? "bg-card shadow-sm text-purple-600 ring-1 ring-card-border" : "text-muted-text hover:text-foreground"}`}
                     >
                       Veritabanları
                     </button>
@@ -208,27 +208,27 @@ export default function CreateInstance() {
                 </div>
 
                 {loading ? (
-                  <div className="animate-pulse bg-slate-100 dark:bg-slate-800 rounded-xl h-48 w-full border border-card-border"></div>
+                  <div className="animate-pulse bg-hover-bg rounded-xl h-48 w-full border border-card-border"></div>
                 ) : (
                   <div className="grid grid-cols-1 gap-3 max-h-[400px] overflow-y-auto pr-2 pb-2">
                     {templates.filter(t => (t as any).category === activeCategory).map((tpl) => (
                       <div
                         key={tpl.id}
                         onClick={() => setFormData({ ...formData, template_id: tpl.id })}
-                        className={`cursor-pointer border p-4 rounded-xl transition-all ${
+                        className={`cursor-pointer border p-4 rounded-xl transition-all shadow-sm ${
                           formData.template_id === tpl.id
                             ? activeCategory === "database" 
-                              ? "border-purple-500 bg-purple-50/10 shadow-sm ring-1 ring-purple-500"
-                              : "border-accent bg-accent/10 shadow-sm ring-1 ring-accent"
-                            : "border-card-border bg-background hover:border-accent hover:bg-slate-50 dark:hover:bg-slate-800"
+                              ? "border-purple-500 bg-purple-500/10 ring-1 ring-purple-500"
+                              : "border-accent bg-accent/10 ring-1 ring-accent"
+                            : "border-card-border bg-card hover:border-accent hover:bg-hover-bg"
                         }`}
                       >
                         <div className="flex justify-between items-start">
                           <div>
-                            <h3 className="font-semibold text-foreground">{tpl.name}</h3>
+                            <h3 className="font-bold text-foreground text-sm">{tpl.name}</h3>
                             <p className="text-xs text-muted-text mt-0.5 line-clamp-1">{tpl.description}</p>
                           </div>
-                          <span className="text-[10px] bg-slate-100 dark:bg-slate-700 border border-card-border px-2 py-0.5 rounded text-muted-text font-mono">
+                          <span className="text-[10px] bg-hover-bg border border-card-border px-2 py-0.5 rounded text-muted-text font-mono font-bold">
                             {tpl.image}
                           </span>
                         </div>
